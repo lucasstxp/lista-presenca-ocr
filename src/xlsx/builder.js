@@ -24,6 +24,14 @@ function preencherRotulo(ws, endereco, rotulo, valor) {
   ws.getCell(endereco).value = valor ? `${rotulo} ${valor}` : rotulo;
 }
 
+/** Monta o título da operação: "OPERAÇÕES XD - <cliente> - <cidade>". */
+function montarTitulo(cliente, cidade) {
+  const partes = ['OPERAÇÕES XD'];
+  if (cliente) partes.push(cliente);
+  if (cidade) partes.push(cidade);
+  return partes.length > 1 ? partes.join(' - ') : '';
+}
+
 /** Copia o estilo (bordas/fonte/alinhamento) de uma linha para outra (A..I). */
 function copiarEstiloLinha(ws, de, para) {
   const origem = ws.getRow(de);
@@ -43,11 +51,15 @@ export async function gerarXlsx(lista) {
   await wb.xlsx.readFile(CAMINHO_TEMPLATE);
   const ws = wb.worksheets[0];
 
+  // Título da operação (célula mesclada C2:E4): "OPERAÇÕES XD - <cliente> - <cidade>".
+  const titulo = montarTitulo(lista.cliente, lista.cidade);
+  if (titulo) ws.getCell('C2').value = titulo;
+
   // Cabeçalho da ficha (rótulos na linha 5 + data no topo direito).
   const dataFmt = formatarData(lista.data);
   preencherRotulo(ws, 'D5', 'Turno:', lista.turno);
   preencherRotulo(ws, 'E5', 'Data:', dataFmt);
-  preencherRotulo(ws, 'F5', 'Unidade:', lista.unidade);
+  preencherRotulo(ws, 'F5', 'Unidade:', lista.cidade); // Unidade = CIDADE
   preencherRotulo(ws, 'G5', 'Setor:', lista.setor);
   if (dataFmt) ws.getCell('I1').value = dataFmt;
 
@@ -84,10 +96,12 @@ export async function gerarXlsx(lista) {
   return Buffer.from(buffer);
 }
 
-/** Nome do arquivo: lista_<unidade>_<data>_<timestamp>.xlsx */
+/** Nome do arquivo: lista_<cliente>_<cidade>_<data>_<timestamp>.xlsx */
 export function nomeArquivoXlsx(lista, agora = new Date()) {
-  const unidade = sanitizarPedaco(lista.unidade || 'lista', 'lista');
+  const cliente = sanitizarPedaco(lista.cliente || '', '');
+  const cidade = sanitizarPedaco(lista.cidade || '', '');
+  const local = [cliente, cidade].filter(Boolean).join('_') || 'lista';
   const data = sanitizarPedaco(lista.data || 'sem-data', 'sem-data');
   const ts = agora.toISOString().replace(/[:.]/g, '-');
-  return `lista_${unidade}_${data}_${ts}.xlsx`;
+  return `lista_${local}_${data}_${ts}.xlsx`;
 }

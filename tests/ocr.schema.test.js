@@ -20,7 +20,8 @@ test('valida JSON no schema do modelo', () => {
   const r = validar(amostra);
   assert.equal(r.ok, true);
   assert.equal(r.data.linhas.length, 3);
-  assert.equal(r.data.unidade, 'Zona Leste');
+  assert.equal(r.data.cliente, 'IMILE RDC');
+  assert.equal(r.data.cidade, 'POA');
   assert.equal(r.data.linhas[0].chave_pix, 'maria@email.com');
 });
 
@@ -34,10 +35,11 @@ test('rejeita JSON fora do contrato (confianca > 1)', () => {
 
 test('aceita campos ausentes como null (linha só com nome)', () => {
   const r = validar({
+    cliente: null,
+    cidade: null,
+    setor: null,
     turno: null,
     data: null,
-    unidade: null,
-    setor: null,
     observacoes: null,
     linhas: [
       { nome_completo: 'Fulano', cpf: null, data_nascimento: null, chave_pix: null, cargo: null, entrada: null, saida: null, assinatura_ok: false, confianca: 0.3 },
@@ -48,9 +50,9 @@ test('aceita campos ausentes como null (linha só com nome)', () => {
 
 test('extrairJson tolera cercas ```json e preâmbulo', () => {
   const texto =
-    'Claro! Segue:\n```json\n{"turno":null,"data":"2026-01-01","unidade":"X","setor":null,"linhas":[],"observacoes":null}\n```';
+    'Claro! Segue:\n```json\n{"cliente":"X","cidade":"POA","setor":null,"turno":null,"data":"2026-01-01","linhas":[],"observacoes":null}\n```';
   const obj = extrairJson(texto);
-  assert.equal(obj.unidade, 'X');
+  assert.equal(obj.cliente, 'X');
 });
 
 test('enriquecer marca precisa_revisao abaixo do limite', () => {

@@ -1,8 +1,9 @@
 {
+  "cliente": "IMILE RDC",
+  "cidade": "POA",
+  "setor": null,
   "turno": "2",
   "data": "2026-08-17",
-  "unidade": "Zona Leste",
-  "setor": "Expedição",
   "linhas": [
     {
       "nome_completo": "Maria Aparecida",

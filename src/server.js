@@ -73,7 +73,8 @@ app.post('/processar', async (req, res) => {
 
     const emRevisao = lista.linhas.filter((l) => l.precisa_revisao).length;
     const resumo = {
-      unidade: lista.unidade,
+      cliente: lista.cliente,
+      cidade: lista.cidade,
       setor: lista.setor,
       turno: lista.turno,
       data: lista.data,

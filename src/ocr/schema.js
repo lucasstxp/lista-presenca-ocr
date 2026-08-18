@@ -29,10 +29,11 @@ export const linhaSchema = z.object({
 });
 
 export const listaSchema = z.object({
+  cliente: strNull,
+  cidade: strNull,
+  setor: strNull,
   turno: strNull,
   data: strNull, // idealmente YYYY-MM-DD; tolerante p/ não falhar leitura difícil
-  unidade: strNull,
-  setor: strNull,
   linhas: z.array(linhaSchema),
   observacoes: strNull,
 });

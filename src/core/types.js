@@ -17,10 +17,11 @@
 
 /**
  * @typedef {Object} ListaExtraida
+ * @property {string|null} cliente
+ * @property {string|null} cidade
+ * @property {string|null} setor
  * @property {string|null} turno
  * @property {string|null} data            // idealmente YYYY-MM-DD
- * @property {string|null} unidade
- * @property {string|null} setor
  * @property {LinhaPresenca[]} linhas
  * @property {string|null} observacoes
  */

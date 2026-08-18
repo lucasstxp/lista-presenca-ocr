@@ -30,9 +30,10 @@ test('preenche o template preservando cabeçalho e destacando revisão', async (
   assert.equal(ws.getCell('B6').value, 'NOME COMPLETO');
   assert.equal(ws.getCell('I6').value, 'ASSINATURA DO COLABORADOR');
 
-  // Campos de cabeçalho preenchidos.
+  // Título da operação completo (C2) + campos de cabeçalho.
+  assert.equal(ws.getCell('C2').value, 'OPERAÇÕES XD - IMILE RDC - POA');
   assert.match(String(ws.getCell('D5').value), /Turno:\s*2/);
-  assert.match(String(ws.getCell('F5').value), /Unidade:\s*Zona Leste/);
+  assert.match(String(ws.getCell('F5').value), /Unidade:\s*POA/);
   assert.equal(ws.getCell('I1').value, '17/08/2026'); // data formatada
 
   // Linha 7 = primeira pessoa (Maria, alta confiança, sem destaque).
@@ -48,7 +49,7 @@ test('preenche o template preservando cabeçalho e destacando revisão', async (
   assert.equal(fill?.fgColor?.argb, 'FFFFF2CC');
 });
 
-test('nome do arquivo segue lista_<unidade>_<data>_<ts>.xlsx', () => {
+test('nome do arquivo segue lista_<cliente>_<cidade>_<data>_<ts>.xlsx', () => {
   const nome = nomeArquivoXlsx(amostra, new Date('2026-08-17T10:20:30.000Z'));
-  assert.match(nome, /^lista_zona_leste_2026-08-17_.*\.xlsx$/);
+  assert.match(nome, /^lista_imile_rdc_poa_2026-08-17_.*\.xlsx$/);
 });

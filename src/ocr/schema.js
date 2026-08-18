@@ -1,28 +1,40 @@
-// Schema executável do contrato de saída do OCR (zod).
-// A resposta do Claude DEVE validar aqui; caso contrário o extractor re-tenta.
+// Schema executável do contrato de saída do OCR (zod), alinhado ao modelo
+// "Operações XD". A resposta do Claude DEVE validar aqui; senão, o extractor
+// re-tenta.
 import { z } from 'zod';
 
-export const turnosSchema = z.object({
-  turno_1: z.boolean(),
-  turno_2: z.boolean(),
-  turno_3: z.boolean(),
-});
+// String tolerante: aceita string ou número do modelo; vazio/nulo -> null.
+const strNull = z
+  .union([z.string(), z.number(), z.null()])
+  .transform((v) => {
+    if (v === null || v === undefined) return null;
+    const s = String(v).trim();
+    return s === '' ? null : s;
+  });
 
 export const linhaSchema = z.object({
-  nome: z.string().min(1),
-  // Campo ilegível vira null (nunca chute) — aceita string ou null.
-  matricula_ou_cpf: z.string().min(1).nullable(),
-  turnos: turnosSchema,
+  nome_completo: z
+    .union([z.string(), z.number()])
+    .transform((v) => String(v).trim())
+    .refine((s) => s.length > 0, 'nome_completo vazio'),
+  cpf: strNull,
+  data_nascimento: strNull,
+  chave_pix: strNull,
+  cargo: strNull,
+  entrada: strNull,
+  saida: strNull,
   assinatura_ok: z.boolean(),
-  confianca: z.number().min(0).max(1),
+  // aceita 0.5 ou "0.5"
+  confianca: z.coerce.number().min(0).max(1),
 });
 
 export const listaSchema = z.object({
-  regiao: z.string().min(1),
-  // Data no formato YYYY-MM-DD.
-  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'data deve ser YYYY-MM-DD'),
+  turno: strNull,
+  data: strNull, // idealmente YYYY-MM-DD; tolerante p/ não falhar leitura difícil
+  unidade: strNull,
+  setor: strNull,
   linhas: z.array(linhaSchema),
-  observacoes: z.string().nullable(),
+  observacoes: strNull,
 });
 
 /**

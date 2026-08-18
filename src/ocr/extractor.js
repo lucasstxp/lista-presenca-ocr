@@ -13,7 +13,7 @@ import { validar } from './schema.js';
 import { extrairTexto as extrairTextoPadrao } from './anthropic.client.js';
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
-const CAMINHO_PROMPT = path.resolve(aqui, '../../prompts/extracao.v1.txt');
+const CAMINHO_PROMPT = path.resolve(aqui, '../../prompts/extracao.v2.txt');
 
 let promptCache = null;
 async function carregarPrompt() {
@@ -99,7 +99,7 @@ export async function extrairDaImagem(
     }
 
     logger.info(
-      { tentativa, linhas: val.data.linhas.length, regiao: val.data.regiao },
+      { tentativa, linhas: val.data.linhas.length, unidade: val.data.unidade },
       'extração concluída',
     );
     return enriquecer(val.data);

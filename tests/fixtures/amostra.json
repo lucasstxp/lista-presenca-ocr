@@ -1,27 +1,41 @@
 {
-  "regiao": "Zona Leste",
+  "turno": "2",
   "data": "2026-08-17",
+  "unidade": "Zona Leste",
+  "setor": "Expedição",
   "linhas": [
     {
-      "nome": "Maria Aparecida",
-      "matricula_ou_cpf": "12345",
-      "turnos": { "turno_1": true, "turno_2": false, "turno_3": false },
+      "nome_completo": "Maria Aparecida",
+      "cpf": "123.456.789-00",
+      "data_nascimento": "01/02/1990",
+      "chave_pix": "maria@email.com",
+      "cargo": "Diarista",
+      "entrada": "08:00",
+      "saida": "17:00",
       "assinatura_ok": true,
       "confianca": 0.97
     },
     {
-      "nome": "Joao da Silva",
-      "matricula_ou_cpf": null,
-      "turnos": { "turno_1": false, "turno_2": true, "turno_3": true },
+      "nome_completo": "Joao da Silva",
+      "cpf": null,
+      "data_nascimento": null,
+      "chave_pix": null,
+      "cargo": "Ajudante",
+      "entrada": "08:05",
+      "saida": null,
       "assinatura_ok": true,
       "confianca": 0.62
     },
     {
-      "nome": "Ilegivel",
-      "matricula_ou_cpf": null,
-      "turnos": { "turno_1": false, "turno_2": false, "turno_3": true },
+      "nome_completo": "Ilegivel",
+      "cpf": null,
+      "data_nascimento": null,
+      "chave_pix": null,
+      "cargo": null,
+      "entrada": null,
+      "saida": null,
       "assinatura_ok": false,
-      "confianca": 0.40
+      "confianca": 0.4
     }
   ],
   "observacoes": "Amostra fictícia para testes — sem dados reais."

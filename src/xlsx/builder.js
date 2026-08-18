@@ -1,105 +1,93 @@
-// Gera o XLS a partir dos dados validados.
-// Contrato de colunas fixo; linhas em revisão destacadas; aba de resumo.
+// Gera o XLS preenchendo o TEMPLATE oficial (modelo_planilha.xlsx / "Operações XD").
+// Carregar o template preserva logo, textos das NRs, mesclagens e formatação.
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import ExcelJS from 'exceljs';
 import { sanitizarPedaco } from '../core/storage.js';
 
-const COLUNAS = [
-  { header: 'nome', key: 'nome', width: 30 },
-  { header: 'matricula_ou_cpf', key: 'matricula_ou_cpf', width: 20 },
-  { header: 'data', key: 'data', width: 12 },
-  { header: 'regiao', key: 'regiao', width: 18 },
-  { header: 'turno_1', key: 'turno_1', width: 10 },
-  { header: 'turno_2', key: 'turno_2', width: 10 },
-  { header: 'turno_3', key: 'turno_3', width: 10 },
-  { header: 'assinatura_ok', key: 'assinatura_ok', width: 14 },
-  { header: 'confianca', key: 'confianca', width: 12 },
-  { header: 'precisa_revisao', key: 'precisa_revisao', width: 16 },
-];
+const aqui = path.dirname(fileURLToPath(import.meta.url));
+const CAMINHO_TEMPLATE = path.resolve(aqui, '../../modelo_planilha.xlsx');
 
-const AMARELO_REVISAO = 'FFFFF2CC'; // fundo suave p/ linhas que precisam revisão
-const CINZA_CABECALHO = 'FFD9D9D9';
+const LINHA_INICIAL = 7; // primeira linha de dados na ficha
+const ULTIMA_PRE_FORMATADA = 42; // linhas com borda já prontas no template
+const AMARELO_REVISAO = 'FFFFF2CC'; // destaque p/ linhas de baixa confiança
+
+/** DD/MM/AAAA a partir de YYYY-MM-DD; senão devolve o texto como veio. */
+function formatarData(data) {
+  if (!data) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(data).trim());
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : String(data);
+}
+
+/** Escreve "Rótulo valor" na célula, preservando o estilo do rótulo. */
+function preencherRotulo(ws, endereco, rotulo, valor) {
+  ws.getCell(endereco).value = valor ? `${rotulo} ${valor}` : rotulo;
+}
+
+/** Copia o estilo (bordas/fonte/alinhamento) de uma linha para outra (A..I). */
+function copiarEstiloLinha(ws, de, para) {
+  const origem = ws.getRow(de);
+  const destino = ws.getRow(para);
+  for (let c = 1; c <= 9; c++) {
+    destino.getCell(c).style = { ...origem.getCell(c).style };
+  }
+}
 
 /**
- * Constrói o workbook e devolve um Buffer .xlsx.
+ * Constrói o workbook preenchendo o template e devolve um Buffer .xlsx.
  * @param {import('../core/types.js').ListaExtraida} lista (já enriquecida)
  * @returns {Promise<Buffer>}
  */
 export async function gerarXlsx(lista) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'lista-presenca-ocr';
-  wb.created = new Date();
+  await wb.xlsx.readFile(CAMINHO_TEMPLATE);
+  const ws = wb.worksheets[0];
 
-  // --- Aba de dados ---
-  const ws = wb.addWorksheet('Presenças');
-  ws.columns = COLUNAS;
+  // Cabeçalho da ficha (rótulos na linha 5 + data no topo direito).
+  const dataFmt = formatarData(lista.data);
+  preencherRotulo(ws, 'D5', 'Turno:', lista.turno);
+  preencherRotulo(ws, 'E5', 'Data:', dataFmt);
+  preencherRotulo(ws, 'F5', 'Unidade:', lista.unidade);
+  preencherRotulo(ws, 'G5', 'Setor:', lista.setor);
+  if (dataFmt) ws.getCell('I1').value = dataFmt;
 
-  const cabecalho = ws.getRow(1);
-  cabecalho.font = { bold: true };
-  cabecalho.eachCell((cell) => {
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CINZA_CABECALHO } };
-    cell.alignment = { vertical: 'middle', horizontal: 'center' };
-  });
+  // Linhas de dados.
+  lista.linhas.forEach((linha, i) => {
+    const r = LINHA_INICIAL + i;
+    if (r > ULTIMA_PRE_FORMATADA) copiarEstiloLinha(ws, ULTIMA_PRE_FORMATADA, r);
+    const row = ws.getRow(r);
 
-  let emRevisao = 0;
-  const totais = { turno_1: 0, turno_2: 0, turno_3: 0 };
+    row.getCell(1).value = i + 1; // #
+    row.getCell(2).value = linha.nome_completo ?? '';
+    row.getCell(3).value = linha.cpf ?? '';
+    row.getCell(4).value = linha.data_nascimento ?? '';
+    row.getCell(5).value = linha.chave_pix ?? '';
+    row.getCell(6).value = linha.cargo ?? '';
+    row.getCell(7).value = linha.entrada ?? '';
+    row.getCell(8).value = linha.saida ?? '';
+    row.getCell(9).value = linha.assinatura_ok ? 'assinado' : '';
 
-  for (const linha of lista.linhas) {
-    const turnos = linha.turnos || {};
-    if (turnos.turno_1) totais.turno_1++;
-    if (turnos.turno_2) totais.turno_2++;
-    if (turnos.turno_3) totais.turno_3++;
-    const precisaRevisao = Boolean(linha.precisa_revisao);
-    if (precisaRevisao) emRevisao++;
-
-    const row = ws.addRow({
-      nome: linha.nome ?? '',
-      matricula_ou_cpf: linha.matricula_ou_cpf ?? '',
-      data: lista.data,
-      regiao: lista.regiao,
-      turno_1: turnos.turno_1 ? 'X' : '',
-      turno_2: turnos.turno_2 ? 'X' : '',
-      turno_3: turnos.turno_3 ? 'X' : '',
-      assinatura_ok: linha.assinatura_ok ? 'sim' : 'não',
-      confianca: Number(linha.confianca?.toFixed?.(2) ?? linha.confianca),
-      precisa_revisao: precisaRevisao ? 'SIM' : '',
-    });
-
-    if (precisaRevisao) {
-      row.eachCell((cell) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AMARELO_REVISAO } };
-      });
+    // Linhas de baixa confiança destacadas + nota com a confiança.
+    if (linha.precisa_revisao) {
+      for (let c = 2; c <= 9; c++) {
+        row.getCell(c).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: AMARELO_REVISAO },
+        };
+      }
+      row.getCell(2).note = `Confiança ${Number(linha.confianca).toFixed(2)} — revisar`;
     }
-  }
-
-  ws.autoFilter = { from: 'A1', to: 'J1' };
-  ws.views = [{ state: 'frozen', ySplit: 1 }];
-
-  // --- Aba de resumo ---
-  const resumo = wb.addWorksheet('Resumo');
-  resumo.columns = [
-    { header: 'Indicador', key: 'ind', width: 28 },
-    { header: 'Valor', key: 'val', width: 16 },
-  ];
-  resumo.getRow(1).font = { bold: true };
-  resumo.addRows([
-    { ind: 'Região', val: lista.regiao },
-    { ind: 'Data', val: lista.data },
-    { ind: 'Total de linhas', val: lista.linhas.length },
-    { ind: 'Presenças turno 1', val: totais.turno_1 },
-    { ind: 'Presenças turno 2', val: totais.turno_2 },
-    { ind: 'Presenças turno 3', val: totais.turno_3 },
-    { ind: 'Linhas em revisão', val: emRevisao },
-    { ind: 'Observações', val: lista.observacoes ?? '' },
-  ]);
+  });
 
   const buffer = await wb.xlsx.writeBuffer();
   return Buffer.from(buffer);
 }
 
-/** Nome do arquivo: lista_<regiao>_<data>_<timestamp>.xlsx */
+/** Nome do arquivo: lista_<unidade>_<data>_<timestamp>.xlsx */
 export function nomeArquivoXlsx(lista, agora = new Date()) {
-  const regiao = sanitizarPedaco(lista.regiao, 'regiao');
-  const data = sanitizarPedaco(lista.data, 'data');
+  const unidade = sanitizarPedaco(lista.unidade || 'lista', 'lista');
+  const data = sanitizarPedaco(lista.data || 'sem-data', 'sem-data');
   const ts = agora.toISOString().replace(/[:.]/g, '-');
-  return `lista_${regiao}_${data}_${ts}.xlsx`;
+  return `lista_${unidade}_${data}_${ts}.xlsx`;
 }

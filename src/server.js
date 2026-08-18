@@ -73,12 +73,11 @@ app.post('/processar', async (req, res) => {
 
     const emRevisao = lista.linhas.filter((l) => l.precisa_revisao).length;
     const resumo = {
-      regiao: lista.regiao,
+      unidade: lista.unidade,
+      setor: lista.setor,
+      turno: lista.turno,
       data: lista.data,
       total: lista.linhas.length,
-      turno_1: lista.linhas.filter((l) => l.turnos?.turno_1).length,
-      turno_2: lista.linhas.filter((l) => l.turnos?.turno_2).length,
-      turno_3: lista.linhas.filter((l) => l.turnos?.turno_3).length,
       em_revisao: emRevisao,
     };
 

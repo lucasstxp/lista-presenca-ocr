@@ -7,9 +7,10 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev
 
-# Código-fonte e prompt versionado.
+# Código-fonte, prompt versionado e template do XLS.
 COPY src ./src
 COPY prompts ./prompts
+COPY modelo_planilha.xlsx ./modelo_planilha.xlsx
 
 # Diretório de dados temporários (montável como volume para persistir/limpar).
 RUN mkdir -p /app/data

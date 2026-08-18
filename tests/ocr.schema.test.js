@@ -16,10 +16,12 @@ const amostra = JSON.parse(
   await readFile(path.join(aqui, 'fixtures', 'amostra.json'), 'utf-8'),
 );
 
-test('valida JSON no schema do contrato', () => {
+test('valida JSON no schema do modelo', () => {
   const r = validar(amostra);
   assert.equal(r.ok, true);
   assert.equal(r.data.linhas.length, 3);
+  assert.equal(r.data.unidade, 'Zona Leste');
+  assert.equal(r.data.linhas[0].chave_pix, 'maria@email.com');
 });
 
 test('rejeita JSON fora do contrato (confianca > 1)', () => {
@@ -30,16 +32,25 @@ test('rejeita JSON fora do contrato (confianca > 1)', () => {
   assert.match(r.erros, /confianca/);
 });
 
-test('rejeita data em formato errado', () => {
-  const ruim = structuredClone(amostra);
-  ruim.data = '17/08/2026';
-  assert.equal(validar(ruim).ok, false);
+test('aceita campos ausentes como null (linha só com nome)', () => {
+  const r = validar({
+    turno: null,
+    data: null,
+    unidade: null,
+    setor: null,
+    observacoes: null,
+    linhas: [
+      { nome_completo: 'Fulano', cpf: null, data_nascimento: null, chave_pix: null, cargo: null, entrada: null, saida: null, assinatura_ok: false, confianca: 0.3 },
+    ],
+  });
+  assert.equal(r.ok, true);
 });
 
 test('extrairJson tolera cercas ```json e preâmbulo', () => {
-  const texto = 'Claro! Segue:\n```json\n{"regiao":"X","data":"2026-01-01","linhas":[],"observacoes":null}\n```';
+  const texto =
+    'Claro! Segue:\n```json\n{"turno":null,"data":"2026-01-01","unidade":"X","setor":null,"linhas":[],"observacoes":null}\n```';
   const obj = extrairJson(texto);
-  assert.equal(obj.regiao, 'X');
+  assert.equal(obj.unidade, 'X');
 });
 
 test('enriquecer marca precisa_revisao abaixo do limite', () => {

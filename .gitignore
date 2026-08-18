@@ -8,7 +8,8 @@ node_modules/
 
 # Dados temporários (fotos originais + XLS gerados)
 /data/
-*.xlsx
+# XLS gerados na raiz durante testes (o template modelo_planilha.xlsx é versionado)
+lista_*.xlsx
 
 # Logs
 *.log

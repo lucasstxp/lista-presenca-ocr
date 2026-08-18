@@ -1,7 +1,9 @@
 {
   "name": "Lista de Presença - OCR (uazapi + microserviço)",
   "active": false,
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "nodes": [
     {
       "parameters": {
@@ -14,91 +16,199 @@
       "name": "Webhook uazapi",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-40, 300],
+      "position": [
+        -40,
+        300
+      ],
       "webhookId": "lista-presenca"
     },
     {
       "parameters": {
-        "jsShort": "",
-        "jsCode": "// Normaliza o payload da uazapi (testado c/ v2.1.8). messageType vem como\n// 'ImageMessage'/'ExtendedTextMessage' etc. — detectamos imagem por regex.\n// Se a sua instância mudar nomes de campos, ajuste aqui (README > 'Verificar\n// o mapeamento do webhook').\nconst raiz = $input.first().json;\nconst b = raiz.body || raiz;\nconst m = b.message || b.data || b;\n\nconst chatid = m.chatid || m.chatId || (m.key && m.key.remoteJid) || m.from || '';\nconst isGroup = Boolean(m.isGroup) || String(chatid).includes('@g.us');\n\n// Remetente: NÃO usar m.owner (é o número da própria instância/bot).\nconst remetente = m.sender || m.participant || (m.key && m.key.participant) || m.senderNumber || (isGroup ? '' : chatid) || '';\nconst fromMe = Boolean(m.fromMe != null ? m.fromMe : (m.key && m.key.fromMe));\n\nconst tipoRaw = m.messageType || m.type || '';\nconst isImagem = /image/i.test(String(tipoRaw)) || Boolean(m.image);\n\nconst mime = m.mimetype || (m.image && m.image.mimetype) || 'image/jpeg';\n// base64 da imagem (sem prefixo data:). Se sua instância NÃO manda base64 no\n// webhook, adicione um nó HTTP para baixar a mídia antes deste ponto.\nlet imagem_base64 = m.mediaBase64 || m.base64 || (m.image && m.image.base64) || (m.content && m.content.base64) || m.buffer || '';\nif (typeof imagem_base64 === 'string' && imagem_base64.startsWith('data:')) {\n  imagem_base64 = imagem_base64.split(',').pop();\n}\n\nreturn [{ json: { remetente, grupo: isGroup ? chatid : '', fromMe, messageType: isImagem ? 'image' : String(tipoRaw), mime, imagem_base64 } }];\n"
+        "jsCode": "// Normaliza o payload da uazapi (v2.1.8). O telefone real está em sender_pn\n// (o 'sender' costuma vir como @lid, id de privacidade). A imagem NÃO vem no\n// webhook — pegamos o messageid p/ baixar depois (POST /message/download).\nconst raiz = $input.first().json;\nconst b = raiz.body || raiz;\nconst m = b.message || {};\n\nconst soDigitos = (s) => String(s || '').replace(/\\D/g, '');\nconst numeroDe = (jid) => soDigitos(String(jid || '').split('@')[0]);\n\nconst isGroup = Boolean(m.isGroup) || String(m.chatid || '').includes('@g.us');\nconst remetente = numeroDe(m.sender_pn) || (!isGroup ? numeroDe(m.chatid) : '') || numeroDe(m.sender);\nconst grupo = isGroup ? (m.chatid || '') : '';\nconst fromMe = Boolean(m.fromMe);\n\nconst tipoRaw = m.messageType || m.type || '';\nconst mimeMsg = (m.content && m.content.mimetype) || '';\nconst isImagem = m.mediaType === 'image' || /image/i.test(String(tipoRaw)) || mimeMsg.startsWith('image/');\n\nconst mime = mimeMsg || 'image/jpeg';\nconst messageid = m.messageid || m.id || '';\n\nreturn [{ json: { remetente, grupo, fromMe, messageType: isImagem ? 'image' : String(tipoRaw), mime, messageid } }];\n"
       },
       "id": "normalizar",
       "name": "Normalizar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [180, 300]
+      "position": [
+        180,
+        300
+      ]
     },
     {
       "parameters": {
         "mode": "manual",
         "includeOtherFields": true,
+        "options": {},
         "assignments": {
           "assignments": [
-            { "id": "a1", "name": "microservicoUrl", "type": "string", "value": "http://microservico:3000/processar" },
-            { "id": "a2", "name": "microservicoToken", "type": "string", "value": "COLOQUE_O_MICROSERVICO_TOKEN" },
-            { "id": "a3", "name": "uazapiUrl", "type": "string", "value": "https://SUA-INSTANCIA.uazapi.com" },
-            { "id": "a4", "name": "uazapiToken", "type": "string", "value": "COLOQUE_O_TOKEN_DA_INSTANCIA_UAZAPI" },
-            { "id": "a5", "name": "adminPrivado", "type": "string", "value": "5511999998888" }
+            {
+              "id": "a1",
+              "name": "microservicoUrl",
+              "type": "string",
+              "value": "http://lista-presenca-ocr:3000/processar"
+            },
+            {
+              "id": "a2",
+              "name": "microservicoToken",
+              "type": "string",
+              "value": "COLOQUE_O_MICROSERVICO_TOKEN"
+            },
+            {
+              "id": "a3",
+              "name": "uazapiUrl",
+              "type": "string",
+              "value": "https://SUA-INSTANCIA.uazapi.com"
+            },
+            {
+              "id": "a4",
+              "name": "uazapiToken",
+              "type": "string",
+              "value": "COLOQUE_O_TOKEN_DA_INSTANCIA"
+            },
+            {
+              "id": "a5",
+              "name": "adminPrivado",
+              "type": "string",
+              "value": "5511999998888"
+            }
           ]
-        },
-        "options": {}
+        }
       },
       "id": "config",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [400, 300],
-      "notes": "EDITE os valores. adminPrivado = número da administradora (só dígitos, com DDI+DDD) para onde o XLS + foto serão enviados no privado."
+      "position": [
+        400,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
           "combinator": "and",
           "conditions": [
-            { "id": "c1", "leftValue": "={{ $json.fromMe }}", "rightValue": false, "operator": { "type": "boolean", "operation": "false", "singleValue": true } },
-            { "id": "c2", "leftValue": "={{ $json.messageType }}", "rightValue": "image", "operator": { "type": "string", "operation": "equals" } },
-            { "id": "c3", "leftValue": "={{ $json.imagem_base64 }}", "rightValue": "", "operator": { "type": "string", "operation": "notEmpty", "singleValue": true } }
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.fromMe }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.messageType }}",
+              "rightValue": "image",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
           ]
         },
         "options": {}
       },
       "id": "ehImagem",
-      "name": "É imagem da admin?",
+      "name": "É imagem?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [620, 300],
-      "notes": "Filtro rápido (o microserviço também valida o remetente autorizado)."
+      "position": [
+        620,
+        300
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Config').item.json.microservicoUrl }}",
+        "url": "={{ $(\"Config\").item.json.uazapiUrl }}/message/download",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-microservico-token", "value": "={{ $('Config').item.json.microservicoToken }}" }
+            {
+              "name": "token",
+              "value": "={{ $(\"Config\").item.json.uazapiToken }}"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ imagem_base64: $json.imagem_base64, mime: $json.mime, remetente: $json.remetente, grupo: $json.grupo }) }}",
-        "options": { "response": { "response": { "neverError": true } } }
+        "jsonBody": "={{ JSON.stringify({ id: $json.messageid }) }}",
+        "options": {}
+      },
+      "id": "baixarMidia",
+      "name": "Baixar mídia",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        840,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $(\"Config\").item.json.microservicoUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-microservico-token",
+              "value": "={{ $(\"Config\").item.json.microservicoToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ imagem_url: $json.fileURL, mime: $json.mimetype, remetente: $(\"Normalizar\").item.json.remetente, grupo: $(\"Normalizar\").item.json.grupo }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
       "id": "processar",
       "name": "Processar (microserviço)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [860, 220],
+      "position": [
+        1060,
+        220
+      ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
           "combinator": "and",
           "conditions": [
-            { "id": "ok1", "leftValue": "={{ $json.ok }}", "rightValue": true, "operator": { "type": "boolean", "operation": "true", "singleValue": true } }
+            {
+              "id": "ok1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
           ]
         },
         "options": {}
@@ -107,67 +217,91 @@
       "name": "Deu certo?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1080, 220]
+      "position": [
+        1280,
+        220
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Config').item.json.uazapiUrl }}/send/media",
+        "url": "={{ $(\"Config\").item.json.uazapiUrl }}/send/media",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [ { "name": "token", "value": "={{ $('Config').item.json.uazapiToken }}" } ]
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $(\"Config\").item.json.uazapiToken }}"
+            }
+          ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ number: $('Config').item.json.adminPrivado, type: 'document', file: $json.xlsx_base64, docName: $json.nome_arquivo, text: 'Lista processada — ' + $json.resumo.total + ' linhas, ' + $json.resumo.em_revisao + ' em revisão.' }) }}",
+        "jsonBody": "={{ JSON.stringify({ number: $(\"Config\").item.json.adminPrivado, type: \"document\", file: $json.xlsx_base64, docName: $json.nome_arquivo, text: \"Lista processada — \" + $json.resumo.total + \" linhas, \" + $json.resumo.em_revisao + \" em revisão.\" }) }}",
         "options": {}
       },
       "id": "enviarXls",
       "name": "Enviar XLS (privado)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1300, 140],
-      "notes": "uazapi: POST /send/media type=document. Ajuste os nomes dos campos (file/docName/number) conforme sua versão."
+      "position": [
+        1500,
+        140
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Config').item.json.uazapiUrl }}/send/media",
+        "url": "={{ $(\"Config\").item.json.uazapiUrl }}/send/media",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [ { "name": "token", "value": "={{ $('Config').item.json.uazapiToken }}" } ]
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $(\"Config\").item.json.uazapiToken }}"
+            }
+          ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ number: $('Config').item.json.adminPrivado, type: 'image', file: $('Normalizar').item.json.imagem_base64, text: 'Foto original para conferência.' }) }}",
+        "jsonBody": "={{ JSON.stringify({ number: $(\"Config\").item.json.adminPrivado, type: \"image\", file: $(\"Baixar mídia\").item.json.fileURL, text: \"Foto original para conferência.\" }) }}",
         "options": {}
       },
       "id": "enviarFoto",
       "name": "Enviar foto original (privado)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 140],
-      "notes": "Reenvia a foto original que a admin mandou, para conferência lado a lado."
+      "position": [
+        1720,
+        140
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Config').item.json.uazapiUrl }}/send/text",
+        "url": "={{ $(\"Config\").item.json.uazapiUrl }}/send/text",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [ { "name": "token", "value": "={{ $('Config').item.json.uazapiToken }}" } ]
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $(\"Config\").item.json.uazapiToken }}"
+            }
+          ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ number: $('Config').item.json.adminPrivado, text: ($json.mensagem_admin || 'Não consegui ler a lista. Reenvie a foto mais nítida, por favor.') }) }}",
+        "jsonBody": "={{ JSON.stringify({ number: $(\"Config\").item.json.adminPrivado, text: ($json.mensagem_admin || \"Não consegui ler a lista. Reenvie a foto mais nítida, por favor.\") }) }}",
         "options": {}
       },
       "id": "avisarAdmin",
       "name": "Avisar admin (falha)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1300, 320],
-      "notes": "uazapi: POST /send/text. Mensagem amigável quando o OCR falha."
+      "position": [
+        1500,
+        320
+      ]
     },
     {
       "parameters": {},
@@ -175,26 +309,114 @@
       "name": "Ignorar (não autorizado)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [860, 420]
+      "position": [
+        840,
+        420
+      ]
     }
   ],
   "connections": {
-    "Webhook uazapi": { "main": [[{ "node": "Normalizar", "type": "main", "index": 0 }]] },
-    "Normalizar": { "main": [[{ "node": "Config", "type": "main", "index": 0 }]] },
-    "Config": { "main": [[{ "node": "É imagem da admin?", "type": "main", "index": 0 }]] },
-    "É imagem da admin?": {
+    "Webhook uazapi": {
       "main": [
-        [{ "node": "Processar (microserviço)", "type": "main", "index": 0 }],
-        [{ "node": "Ignorar (não autorizado)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Normalizar",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Processar (microserviço)": { "main": [[{ "node": "Deu certo?", "type": "main", "index": 0 }]] },
+    "Normalizar": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "É imagem?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É imagem?": {
+      "main": [
+        [
+          {
+            "node": "Baixar mídia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ignorar (não autorizado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar mídia": {
+      "main": [
+        [
+          {
+            "node": "Processar (microserviço)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar (microserviço)": {
+      "main": [
+        [
+          {
+            "node": "Deu certo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Deu certo?": {
       "main": [
-        [{ "node": "Enviar XLS (privado)", "type": "main", "index": 0 }],
-        [{ "node": "Avisar admin (falha)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Enviar XLS (privado)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar admin (falha)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Enviar XLS (privado)": { "main": [[{ "node": "Enviar foto original (privado)", "type": "main", "index": 0 }]] }
+    "Enviar XLS (privado)": {
+      "main": [
+        [
+          {
+            "node": "Enviar foto original (privado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   }
 }

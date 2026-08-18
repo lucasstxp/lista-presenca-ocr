@@ -1,0 +1,21 @@
+# Dependências
+node_modules/
+
+# Credenciais e ambiente
+.env
+.env.*
+!.env.example
+
+# Dados temporários (fotos originais + XLS gerados)
+/data/
+*.xlsx
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operacional / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

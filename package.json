@@ -1,0 +1,22 @@
+{
+  "name": "lista-presenca-ocr",
+  "version": "1.0.0",
+  "description": "Microserviço de OCR/extração de listas de presença de diaristas (WhatsApp + Claude) que gera XLS por turno.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": ">=0.65.0 <1.0.0",
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.2",
+    "pino": "^9.5.0",
+    "zod": "^3.24.1"
+  }
+}

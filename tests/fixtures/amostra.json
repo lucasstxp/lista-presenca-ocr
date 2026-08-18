@@ -1,0 +1,28 @@
+{
+  "regiao": "Zona Leste",
+  "data": "2026-08-17",
+  "linhas": [
+    {
+      "nome": "Maria Aparecida",
+      "matricula_ou_cpf": "12345",
+      "turnos": { "turno_1": true, "turno_2": false, "turno_3": false },
+      "assinatura_ok": true,
+      "confianca": 0.97
+    },
+    {
+      "nome": "Joao da Silva",
+      "matricula_ou_cpf": null,
+      "turnos": { "turno_1": false, "turno_2": true, "turno_3": true },
+      "assinatura_ok": true,
+      "confianca": 0.62
+    },
+    {
+      "nome": "Ilegivel",
+      "matricula_ou_cpf": null,
+      "turnos": { "turno_1": false, "turno_2": false, "turno_3": true },
+      "assinatura_ok": false,
+      "confianca": 0.40
+    }
+  ],
+  "observacoes": "Amostra fictícia para testes — sem dados reais."
+}

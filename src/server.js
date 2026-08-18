@@ -7,6 +7,7 @@ import { logger } from './core/logger.js';
 import { ErroApp } from './core/errors.js';
 import { estaAutorizado } from './core/auth.js';
 import { salvarArquivo, extensaoDaImagem } from './core/storage.js';
+import { baixarImagem } from './core/download.js';
 import { agendarRetencao } from './core/retention.js';
 import { extrairDaImagem } from './ocr/extractor.js';
 import { gerarXlsx, nomeArquivoXlsx } from './xlsx/builder.js';
@@ -27,7 +28,13 @@ app.post('/processar', async (req, res) => {
     }
   }
 
-  const { imagem_base64: imagemBase64, mime = 'image/jpeg', remetente, grupo } = req.body || {};
+  const {
+    imagem_base64: imagemBase64Entrada,
+    imagem_url: imagemUrl,
+    mime: mimeEntrada,
+    remetente,
+    grupo,
+  } = req.body || {};
 
   // 2) Autorização (defesa em profundidade — o n8n também filtra).
   const auth = estaAutorizado({ remetente, grupo });
@@ -36,13 +43,22 @@ app.post('/processar', async (req, res) => {
     return res.status(403).json({ ok: false, codigo: auth.motivo });
   }
 
-  if (!imagemBase64 || typeof imagemBase64 !== 'string') {
+  if (!imagemBase64Entrada && !imagemUrl) {
     return res.status(400).json({ ok: false, codigo: 'imagem_ausente' });
   }
 
   const inicio = Date.now();
   try {
-    // 3) Nunca perder o original: salva a foto antes do OCR.
+    // 3) Obtém a imagem: base64 direto ou baixa da URL (uazapi entrega fileURL).
+    let imagemBase64 = imagemBase64Entrada;
+    let mime = mimeEntrada || 'image/jpeg';
+    if (!imagemBase64 && imagemUrl) {
+      const baixada = await baixarImagem(imagemUrl);
+      imagemBase64 = baixada.base64;
+      mime = mimeEntrada || baixada.mime;
+    }
+
+    // Nunca perder o original: salva a foto antes do OCR.
     const imagemBuffer = Buffer.from(imagemBase64, 'base64');
     const nomeOriginal = `original_${Date.now()}.${extensaoDaImagem(mime)}`;
     const caminhoOriginal = await salvarArquivo(nomeOriginal, imagemBuffer);

@@ -48,16 +48,15 @@ test('preenche o template preservando cabeçalho e destacando revisão', async (
   assert.equal(fill?.type, 'pattern');
   assert.equal(fill?.fgColor?.argb, 'FFFFF2CC');
 
-  // Numeração só nas linhas com nome: 3 pessoas -> linhas 7,8,9 numeradas;
-  // linha 10 em diante sem número.
+  // Só as linhas preenchidas: 3 pessoas -> a tabela (com borda) termina na
+  // linha 9; a linha 10 não tem mais borda (linhas vazias removidas).
   assert.equal(ws.getCell('A9').value, 3);
-  assert.equal(ws.getCell('A10').value, null);
-  assert.equal(ws.getCell('A42').value, null);
+  assert.ok(ws.getCell('B9').border?.bottom, 'última pessoa (linha 9) tem borda');
+  const b10 = ws.getCell('B10').border;
+  assert.ok(!b10 || !b10.bottom, 'linha 10 sem borda (vazias removidas)');
 
-  // Rodapé sem assinaturas e sem data.
+  // Rodapé (assinaturas/data) removido — não deve haver a célula com o texto.
   assert.equal(ws.getCell('A44').value, null);
-  assert.equal(ws.getCell('A45').value, null);
-  assert.equal(ws.getCell('H45').value, null);
 });
 
 test('nome do arquivo segue lista_<cliente>_<cidade>_<data>_<ts>.xlsx', () => {

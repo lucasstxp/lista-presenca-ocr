@@ -60,7 +60,12 @@ export async function gerarXlsx(lista) {
     const logoBuffer = await readFile(CAMINHO_LOGO);
     const imgId = wb.addImage({ buffer: logoBuffer, extension: 'png' });
     ws.getCell('A2').value = null; // remove o "XD" escrito
-    ws.addImage(imgId, 'A2:B4');
+    // Âncora com tamanho explícito (px) — renderiza em qualquer visualizador.
+    ws.addImage(imgId, {
+      tl: { col: 0.15, row: 1.15 },
+      ext: { width: 174, height: 73 },
+      editAs: 'oneCell',
+    });
   } catch (err) {
     // Sem logo disponível: mantém o "XD" do template.
     logger.warn({ erro: err.message }, 'logo não embutida (usando texto do template)');

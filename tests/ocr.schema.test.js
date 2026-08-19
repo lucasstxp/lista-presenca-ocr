@@ -48,6 +48,18 @@ test('aceita campos ausentes como null (linha só com nome)', () => {
   assert.equal(r.ok, true);
 });
 
+test('linha sem nome não derruba a lista e é descartada no enriquecer', () => {
+  const comVazia = structuredClone(amostra);
+  comVazia.linhas.push({
+    nome_completo: null, cpf: null, data_nascimento: null, chave_pix: null,
+    cargo: null, entrada: null, saida: null, assinatura_ok: false, confianca: 0.2,
+  });
+  const v = validar(comVazia);
+  assert.equal(v.ok, true); // não falha mais por causa da linha sem nome
+  const enr = enriquecer(v.data, 0.85);
+  assert.equal(enr.linhas.length, 3); // a linha sem nome foi descartada
+});
+
 test('extrairJson tolera cercas ```json e preâmbulo', () => {
   const texto =
     'Claro! Segue:\n```json\n{"cliente":"X","cidade":"POA","setor":null,"turno":null,"data":"2026-01-01","linhas":[],"observacoes":null}\n```';

@@ -13,10 +13,9 @@ const strNull = z
   });
 
 export const linhaSchema = z.object({
-  nome_completo: z
-    .union([z.string(), z.number()])
-    .transform((v) => String(v).trim())
-    .refine((s) => s.length > 0, 'nome_completo vazio'),
+  // Opcional: uma linha sem nome (linha em branco do formulário) NÃO pode
+  // derrubar a lista inteira. Linhas sem nome são descartadas no extractor.
+  nome_completo: strNull,
   cpf: strNull,
   data_nascimento: strNull,
   chave_pix: strNull,

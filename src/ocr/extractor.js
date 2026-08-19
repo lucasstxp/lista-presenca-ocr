@@ -39,14 +39,17 @@ export function extrairJson(texto) {
   return JSON.parse(limpo.slice(ini, fim + 1));
 }
 
-/** Marca precisa_revisao por linha conforme o limite de confiança. */
+/** Descarta linhas sem nome (linhas em branco do formulário) e marca
+ *  precisa_revisao por linha conforme o limite de confiança. */
 export function enriquecer(lista, confiancaMinima = config.regras.confiancaMinima) {
   return {
     ...lista,
-    linhas: lista.linhas.map((linha) => ({
-      ...linha,
-      precisa_revisao: linha.confianca < confiancaMinima,
-    })),
+    linhas: lista.linhas
+      .filter((linha) => linha.nome_completo && String(linha.nome_completo).trim())
+      .map((linha) => ({
+        ...linha,
+        precisa_revisao: linha.confianca < confiancaMinima,
+      })),
   };
 }
 

@@ -47,6 +47,17 @@ test('preenche o template preservando cabeçalho e destacando revisão', async (
   const fill = ws.getCell('B8').fill;
   assert.equal(fill?.type, 'pattern');
   assert.equal(fill?.fgColor?.argb, 'FFFFF2CC');
+
+  // Numeração só nas linhas com nome: 3 pessoas -> linhas 7,8,9 numeradas;
+  // linha 10 em diante sem número.
+  assert.equal(ws.getCell('A9').value, 3);
+  assert.equal(ws.getCell('A10').value, null);
+  assert.equal(ws.getCell('A42').value, null);
+
+  // Rodapé sem assinaturas e sem data.
+  assert.equal(ws.getCell('A44').value, null);
+  assert.equal(ws.getCell('A45').value, null);
+  assert.equal(ws.getCell('H45').value, null);
 });
 
 test('nome do arquivo segue lista_<cliente>_<cidade>_<data>_<ts>.xlsx', () => {

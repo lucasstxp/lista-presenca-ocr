@@ -92,6 +92,17 @@ export async function gerarXlsx(lista) {
     }
   });
 
+  // Numeração só nas linhas com nome: limpa os números pré-preenchidos das
+  // linhas que ficaram sem colaborador.
+  for (let r = LINHA_INICIAL + lista.linhas.length; r <= ULTIMA_PRE_FORMATADA; r++) {
+    ws.getRow(r).getCell(1).value = null;
+  }
+
+  // Remove do rodapé as assinaturas e a data.
+  ws.getCell('A44').value = null;
+  ws.getCell('A45').value = null;
+  ws.getCell('H45').value = null;
+
   const buffer = await wb.xlsx.writeBuffer();
   return Buffer.from(buffer);
 }

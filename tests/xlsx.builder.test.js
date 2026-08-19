@@ -30,6 +30,10 @@ test('preenche o template preservando cabeçalho e destacando revisão', async (
   assert.equal(ws.getCell('B6').value, 'NOME COMPLETO');
   assert.equal(ws.getCell('I6').value, 'ASSINATURA DO COLABORADOR');
 
+  // Logo embutida (substitui o "XD" escrito).
+  assert.ok(ws.getImages().length >= 1, 'logo embutida como imagem');
+  assert.equal(ws.getCell('A2').value, null, 'texto XD removido');
+
   // Título da operação completo (C2) + campos de cabeçalho.
   assert.equal(ws.getCell('C2').value, 'OPERAÇÕES XD - IMILE RDC - POA');
   assert.match(String(ws.getCell('D5').value), /Turno:\s*2/);

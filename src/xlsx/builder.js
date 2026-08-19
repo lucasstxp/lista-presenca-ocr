@@ -1,12 +1,15 @@
 // Gera o XLS preenchendo o TEMPLATE oficial (modelo_planilha.xlsx / "Operações XD").
 // Carregar o template preserva logo, textos das NRs, mesclagens e formatação.
 import path from 'node:path';
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import ExcelJS from 'exceljs';
 import { sanitizarPedaco } from '../core/storage.js';
+import { logger } from '../core/logger.js';
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const CAMINHO_TEMPLATE = path.resolve(aqui, '../../modelo_planilha.xlsx');
+const CAMINHO_LOGO = path.resolve(aqui, '../../logo.png');
 
 const LINHA_INICIAL = 7; // primeira linha de dados na ficha
 const ULTIMA_PRE_FORMATADA = 42; // linhas com borda já prontas no template
@@ -51,6 +54,17 @@ export async function gerarXlsx(lista) {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(CAMINHO_TEMPLATE);
   const ws = wb.worksheets[0];
+
+  // Logo XD no cabeçalho (substitui o texto "XD" na área mesclada A2:B4).
+  try {
+    const logoBuffer = await readFile(CAMINHO_LOGO);
+    const imgId = wb.addImage({ buffer: logoBuffer, extension: 'png' });
+    ws.getCell('A2').value = null; // remove o "XD" escrito
+    ws.addImage(imgId, 'A2:B4');
+  } catch (err) {
+    // Sem logo disponível: mantém o "XD" do template.
+    logger.warn({ erro: err.message }, 'logo não embutida (usando texto do template)');
+  }
 
   // Título da operação (célula mesclada C2:E4): "OPERAÇÕES XD - <cliente> - <cidade>".
   const titulo = montarTitulo(lista.cliente, lista.cidade);

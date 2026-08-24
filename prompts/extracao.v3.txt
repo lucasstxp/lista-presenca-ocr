@@ -15,11 +15,15 @@ REGRAS IMPORTANTES
   linha; caso contrário false.
 
 CABEÇALHO DA FICHA (quando visível):
-- O título costuma vir como "OPERAÇÕES XD - <CLIENTE> - <CIDADE>"
-  (ex.: "OPERAÇÕES XD - IMILE RDC - POA" => cliente "IMILE RDC", cidade "POA").
-  Extraia:
-  - "cliente": o nome do cliente/operação (ex.: "IMILE RDC") ou null.
-  - "cidade": a cidade/sigla (ex.: "POA") ou null.
+- O título vem como "OPERAÇÕES XD - <CLIENTE> - <CIDADE>". SEMPRE separe em dois
+  campos: a CIDADE é a parte FINAL (depois do último " - "); o CLIENTE é o que
+  fica ENTRE "OPERAÇÕES XD -" e a cidade. NUNCA junte cidade dentro de cliente.
+  Exemplos:
+    "OPERAÇÕES XD - LOGGI - CONTAGEM"  => cliente="LOGGI",     cidade="CONTAGEM"
+    "OPERAÇÕES XD - IMILE RDC - POA"   => cliente="IMILE RDC", cidade="POA"
+    "OPERAÇÕES XD - ANJUN - SANTA CATARINA" => cliente="ANJUN", cidade="SANTA CATARINA"
+  - "cliente": só o nome do cliente/operação (sem a cidade) ou null.
+  - "cidade": só a cidade/sigla final ou null.
 - "turno": o turno indicado (ex.: "1", "2", "3", "Manhã"…) ou null.
 - "data": a data da lista em formato "YYYY-MM-DD" (ou null se ilegível).
 - "setor": SOMENTE se houver um campo "Setor" explícito e preenchido na ficha;

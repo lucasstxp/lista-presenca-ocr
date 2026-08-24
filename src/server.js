@@ -97,6 +97,7 @@ app.post('/processar', async (req, res) => {
 
     return res.json({
       ok: true,
+      modelo: config.anthropic.modelo,
       nome_arquivo: nomeXlsx,
       xlsx_base64: xlsxBuffer.toString('base64'),
       resumo,
@@ -123,7 +124,10 @@ const executadoDireto = process.argv[1] && process.argv[1].endsWith('server.js')
 if (executadoDireto) {
   agendarRetencao();
   app.listen(config.porta, () => {
-    logger.info({ porta: config.porta }, 'microserviço no ar');
+    logger.info(
+      { porta: config.porta, modelo: config.anthropic.modelo, fallback: config.anthropic.modeloFallback },
+      'microserviço no ar',
+    );
   });
 }
 

@@ -101,20 +101,29 @@ export async function extrairDaImagem(
       continue;
     }
 
+    const enriquecida = enriquecer(val.data);
+    // Nunca entregar ficha vazia: se não sobrou ninguém com nome legível,
+    // trata como falha de leitura e re-tenta.
+    if (enriquecida.linhas.length === 0) {
+      ultimoErro = { tipo: 'vazio', mensagem: 'nenhum nome legível' };
+      logger.warn({ tentativa }, 'extração sem linhas com nome — re-tentando');
+      continue;
+    }
+
     logger.info(
-      { tentativa, linhas: val.data.linhas.length, cliente: val.data.cliente, cidade: val.data.cidade },
+      { tentativa, linhas: enriquecida.linhas.length, cliente: val.data.cliente, cidade: val.data.cidade },
       'extração concluída',
     );
-    return enriquecer(val.data);
+    return enriquecida;
   }
+
+  const mensagemAdmin =
+    ultimoErro?.tipo === 'vazio'
+      ? 'Não consegui ler os nomes da lista. Reenvie a foto mais nítida e, se possível, com a folha na vertical (não deitada).'
+      : 'Não consegui ler a lista. Reenvie a foto mais nítida e bem enquadrada, por favor.';
 
   throw new ErroApp(
     `extração falhou após ${maxTentativas} tentativas (${ultimoErro?.tipo}: ${ultimoErro?.mensagem})`,
-    {
-      codigo: `ocr_${ultimoErro?.tipo || 'desconhecido'}`,
-      mensagemAdmin:
-        'Não consegui ler a lista. Reenvie a foto mais nítida e bem enquadrada, por favor.',
-      status: 422,
-    },
+    { codigo: `ocr_${ultimoErro?.tipo || 'desconhecido'}`, mensagemAdmin, status: 422 },
   );
 }
